@@ -32,15 +32,15 @@ function run() {
 
     let params = new URL(document.location).searchParams;
 
-    let useBetaFeatures = params.get("beta")
-    
+    let useBetaFeatures = params.get("beta") ? params.get("beta") : prompt("Use new syntax? (y/n)\nFor more info: \nType N if this would break your code.").toLowerCase()[0] == 'y';
+
     let code = params.get("code");
 
     let filename = params.get("name");
 
     document.getElementById("filename").innerHTML = "File: " + filename
 
-    let line = code.split(';');
+    let line = useBetaFeatures ? code.replace("\r\n", "\n").replace("\n", ";").split(';') : code.split(';');
 
     var currentLine = ""
 
@@ -68,8 +68,8 @@ function run() {
     for (let i = 0; i < count; i++) {
 
         currentLine = line[i]
-        
-        let part = currentLine.split(useBetaFeatures ? ' ' : '=');
+
+        let part = currentLine.split(useBetaFeatures ? ' ' : '=', 1);
 
 
 
@@ -80,7 +80,7 @@ function run() {
         if (part[0] == "print") {
 
             returnv(part[1])
-            
+
             continue;
 
         }
@@ -114,17 +114,26 @@ function run() {
             // It checks if the first parameter is storage so it gets the stored value.
 
             if (parameters[0] == "storage") {
+
                 if (storage == parameters[1]) {
+
                     returnv(parameters[2])
+
                 } else {
+
                     returnv(parameters[3])
+
                 }
             } else {
 
                 if (parameters[0] == parameters[1]) {
+                    
                     returnv(parameters[2])
+
                 } else {
+
                     returnv(parameters[3])
+
                 }
 
             }
@@ -132,8 +141,6 @@ function run() {
             continue;
 
         }
-
-
 
         if (part[0] == "storage.input") {
 
@@ -145,26 +152,43 @@ function run() {
 
         // Code for registering a named procedure, which is like a function except it cannot return a value
         // Syntax: newNamedProc myNamedProc,arg1,arg2,arg3;
-        // and then later on you can call namedProcBody
-        if (part[0] == "newNamedProc") {
+        // and then later on you can call namedProcBody myNamedProc, { ... } to give it a body
+        // after that you can call myNamedProc=arg1,arg2,arg3;
+        
+        if (useBetaFeatures && part[0] == "newNamedProc") {
 
-            let args = part[1].split(",");
-            
+            let args = part[1].replace(" ", "").split(",");
+
             namedProcedures[args[0]] = {
-                name: args[0],
+                name: '$' + args[0],
                 requiredArguments: args.length > 1 ? args.slice(1, args.length + 1) : [],
             }
 
-            
-            
             continue;
+        }
+
+        if (useBetaFeatures && part[0] == "namedProcBody") {
+            
+            const args = part[1].replace(";", ",").replace(" ", "").split(",");
+            const funcName = args[0];
+            const instructions = args.slice(1);
+
+            namedProcedures[funcName].body = instructions.replace(" ", "").split(",");
             
         }
 
-        return "Syntax Error: Unknown instruction: " + currentLine;
-    
-    }
+        if (useBetaFeatures && part[0] in Object.keys(namedProcedures)) {
 
-    
+            return "Not implemented yet";
+
+        }
+
+        if (useBetaFeatures && part[0] == "runJS") {
+            eval(part[1].join(' '));
+        }
+
+        if (useBetaFeatures) return "Syntax Error: Unknown instruction: " + currentLine;
+
+    }
 
 }
