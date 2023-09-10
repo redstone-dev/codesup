@@ -32,6 +32,8 @@ function run() {
 
     let params = new URL(document.location).searchParams;
 
+    let useBetaFeatures = params.get("beta")
+    
     let code = params.get("code");
 
     let filename = params.get("name");
@@ -44,7 +46,7 @@ function run() {
 
     var storage = ""
 
-
+    var namedProcedures = {}
 
     // Now the loop to run the code in each line
 
@@ -66,8 +68,8 @@ function run() {
     for (let i = 0; i < count; i++) {
 
         currentLine = line[i]
-
-        let part = currentLine.split('=');
+        
+        let part = currentLine.split(useBetaFeatures ? ' ' : '=');
 
 
 
@@ -78,6 +80,8 @@ function run() {
         if (part[0] == "print") {
 
             returnv(part[1])
+            
+            continue;
 
         }
 
@@ -87,13 +91,17 @@ function run() {
 
             storage = part[1]
 
+            continue;
+
         }
 
 
 
-        if (part[0] == "storage.get") {
+        if (part[0] == "storage.printValue") {
 
             returnv(storage)
+
+            continue;
 
         }
 
@@ -121,6 +129,8 @@ function run() {
 
             }
 
+            continue;
+
         }
 
 
@@ -129,11 +139,32 @@ function run() {
 
             storage = prompt(part[1])
 
+            continue;
+
         }
 
+        // Code for registering a named procedure, which is like a function except it cannot return a value
+        // Syntax: newNamedProc myNamedProc,arg1,arg2,arg3;
+        // and then later on you can call namedProcBody
+        if (part[0] == "newNamedProc") {
 
+            let args = part[1].split(",");
+            
+            namedProcedures[args[0]] = {
+                name: args[0],
+                requiredArguments: args.length > 1 ? args.slice(1, args.length + 1) : [],
+            }
 
+            
+            
+            continue;
+            
+        }
 
+        return "Syntax Error: Unknown instruction: " + currentLine;
+    
     }
 
-            }
+    
+
+}
